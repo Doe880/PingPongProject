@@ -1,0 +1,352 @@
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: #0b1020;
+  color: #e8eefc;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  overflow: hidden;
+}
+
+/* Канвас всегда на весь экран */
+#game {
+  display: block;
+  width: 100vw;
+  height: 100vh;
+  touch-action: none;
+}
+
+/* ====== Единая шапка ====== */
+#header {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  z-index: 25;
+  padding-top: env(safe-area-inset-top);
+  pointer-events: none; /* чтобы не мешать свайпу */
+}
+
+/* ====== Бренд ====== */
+#brand {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 6px 10px 0;
+}
+
+#brandTitle {
+  font-weight: 950;
+  font-size: clamp(14px, 3.6vw, 18px);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  background: linear-gradient(90deg,#ffffff,#a9b8ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 2px 10px rgba(40,90,255,0.35));
+  animation: titleAppear 650ms ease-out both;
+}
+
+/* Жёстко ограничиваем размер картинки, чтобы не раздувало экран */
+#brandLogo {
+  width: clamp(44px, 14vw, 72px);
+  max-width: 72px;
+  height: auto;
+  display: block;
+  opacity: 0.95;
+  filter:
+    drop-shadow(0 0 10px rgba(70,130,255,0.45))
+    drop-shadow(0 0 22px rgba(255,255,255,0.18));
+  animation: logoGlow 2.4s ease-in-out infinite, logoAppear 750ms ease-out both;
+}
+
+/* ====== UI ====== */
+#ui {
+  padding: 8px 12px 10px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
+  align-items: center;
+  pointer-events: none;
+}
+
+#score {
+  font-weight: 900;
+  letter-spacing: 1px;
+  font-size: 16px;
+  text-shadow: 0 1px 0 rgba(0,0,0,0.5);
+  pointer-events: auto;
+  padding: 6px 10px;
+  border-radius: 12px;
+  background: rgba(0,0,0,0.25);
+}
+
+#centerInfo {
+  display: grid;
+  gap: 2px;
+  justify-items: center;
+}
+
+#hint {
+  opacity: 0.85;
+  font-size: 12px;
+  text-align: center;
+}
+
+#status {
+  opacity: 0.95;
+  font-size: 12px;
+  font-weight: 800;
+  min-height: 14px;
+}
+
+#buttons {
+  display: flex;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+#buttons button {
+  border: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: rgba(42, 60, 255, 0.85);
+  color: white;
+  font-weight: 900;
+  font-size: 16px;
+}
+#buttons button:active { transform: translateY(1px); }
+
+/* ====== На маленьких экранах убираем длинный текст, чтобы не было наложений ====== */
+@media (max-width: 420px) {
+  #hint { display: none; }                 /* главная причина “каши” */
+  #ui { padding-top: 6px; gap: 8px; }
+  #buttons button { width: 38px; height: 38px; }
+  #score { font-size: 15px; }
+}
+
+/* ====== Меню ====== */
+#menu {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  z-index: 40;
+  pointer-events: auto;
+}
+#menu.hidden { display: none; }
+
+#menuCard {
+  width: min(520px, 100%);
+  background: rgba(15, 22, 50, 0.96);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 18px;
+  box-shadow: 0 18px 60px rgba(0,0,0,0.55);
+  padding: 14px;
+}
+
+.menuHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.menuTitle { font-size: 16px; font-weight: 900; }
+
+.iconBtn {
+  border: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.10);
+  color: #fff;
+  font-weight: 900;
+  font-size: 16px;
+}
+
+.menuSection {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255,255,255,0.10);
+}
+
+.menuLabel {
+  font-size: 13px;
+  font-weight: 800;
+  opacity: 0.95;
+  margin-bottom: 8px;
+}
+
+.faceGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.faceBtn {
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.06);
+  border-radius: 14px;
+  padding: 8px;
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.faceBtn img {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(0,0,0,0.25);
+  background: rgba(0,0,0,0.15);
+}
+
+.faceBtn .faceName {
+  font-size: 11px;
+  opacity: 0.9;
+  text-align: center;
+  word-break: break-word;
+}
+
+.faceBtn.selected {
+  outline: 2px solid rgba(42, 60, 255, 0.9);
+  border-color: rgba(42, 60, 255, 0.9);
+}
+
+.menuFooter { margin-top: 14px; }
+
+#btnMenuStart {
+  width: 100%;
+  border: 0;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(42, 60, 255, 0.95);
+  color: white;
+  font-weight: 900;
+  font-size: 14px;
+}
+#btnMenuStart:active { transform: translateY(1px); }
+
+/* ====== Интро ====== */
+#intro {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: radial-gradient(circle at 50% 25%, rgba(60,90,255,0.22), rgba(0,0,0,0.72));
+  z-index: 60;
+  pointer-events: auto;
+}
+
+#intro.introHidden {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 500ms ease;
+}
+
+#intro.introVisible {
+  opacity: 1;
+  transition: opacity 300ms ease;
+}
+
+.introCard {
+  width: min(520px, 100%);
+  border-radius: 22px;
+  padding: 18px 16px 16px;
+  background: rgba(10, 14, 30, 0.75);
+  border: 1px solid rgba(255,255,255,0.14);
+  box-shadow: 0 24px 70px rgba(0,0,0,0.65);
+  text-align: center;
+  animation: introPop 700ms ease-out both;
+}
+
+.introTitle {
+  font-weight: 950;
+  font-size: 20px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  background: linear-gradient(90deg,#ffffff,#a9b8ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 2px 12px rgba(40,90,255,0.40));
+}
+
+.introLogo {
+  margin: 10px auto 8px;
+  width: 110px;
+  max-width: 35vw;
+  height: auto;
+  display: block;
+  filter:
+    drop-shadow(0 0 14px rgba(90,160,255,0.65))
+    drop-shadow(0 0 36px rgba(255,255,255,0.20));
+  animation: logoGlow 2.4s ease-in-out infinite;
+}
+
+.introSubtitle {
+  font-weight: 700;
+  opacity: 0.88;
+  font-size: 12px;
+  letter-spacing: 0.3px;
+  margin-bottom: 14px;
+}
+
+.introCountdown { display: grid; gap: 4px; justify-items: center; }
+
+#countdownNumber {
+  font-size: 44px;
+  font-weight: 950;
+  line-height: 1;
+  letter-spacing: 1px;
+  text-shadow: 0 8px 30px rgba(0,0,0,0.55);
+  animation: pulseNum 900ms ease-in-out infinite;
+}
+
+#countdownText { font-size: 12px; opacity: 0.9; font-weight: 800; }
+.introTapHint { margin-top: 10px; font-size: 12px; opacity: 0.85; }
+
+/* ====== Анимации ====== */
+@keyframes logoGlow {
+  0%, 100% {
+    filter:
+      drop-shadow(0 0 10px rgba(70,130,255,0.45))
+      drop-shadow(0 0 22px rgba(255,255,255,0.18));
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    filter:
+      drop-shadow(0 0 14px rgba(90,160,255,0.62))
+      drop-shadow(0 0 30px rgba(255,255,255,0.22));
+    transform: translateY(-1px) scale(1.02);
+  }
+}
+
+@keyframes logoAppear {
+  from { opacity: 0; transform: translateY(-10px) scale(0.96); }
+  to   { opacity: 0.95; transform: translateY(0) scale(1); }
+}
+
+@keyframes titleAppear {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes introPop {
+  from { transform: translateY(14px) scale(0.98); opacity: 0; }
+  to   { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+@keyframes pulseNum {
+  0%,100% { transform: scale(1); opacity: 0.95; }
+  50%     { transform: scale(1.06); opacity: 1; }
+}

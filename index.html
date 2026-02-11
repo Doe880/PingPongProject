@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>LB Padel Championship</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- Единая шапка -->
+  <div id="header">
+    <div id="brand">
+      <div id="brandTitle">LB Padel Championship</div>
+      <img id="brandLogo" src="assets/padel_cross.png" alt="Padel rackets crossed">
+    </div>
+
+    <div id="ui">
+      <div id="score">0 : 0</div>
+
+      <div id="centerInfo">
+        <div id="hint">Свайп — движение. Быстрый свайп = супер-удар.</div>
+        <div id="status"></div>
+      </div>
+
+      <div id="buttons">
+        <button id="btnPause" type="button" aria-label="Пауза">⏸</button>
+        <button id="btnMenu" type="button" aria-label="Меню">🎭</button>
+        <button id="btnRestart" type="button" aria-label="Рестарт">↻</button>
+      </div>
+    </div>
+  </div>
+
+  <canvas id="game"></canvas>
+
+  <!-- Турнирное интро -->
+  <div id="intro" class="introVisible" aria-hidden="false">
+    <div class="introCard">
+      <div class="introTitle">LB Padel Championship</div>
+      <img class="introLogo" src="assets/padel_cross.png" alt="">
+      <div class="introSubtitle">Final Court • Mobile Edition</div>
+
+      <div class="introCountdown">
+        <div id="countdownNumber">3</div>
+        <div id="countdownText">Приготовься…</div>
+      </div>
+
+      <div class="introTapHint">Коснись экрана, чтобы включить звук 🎧</div>
+    </div>
+  </div>
+
+  <!-- Меню выбора лиц -->
+  <div id="menu" class="hidden" role="dialog" aria-modal="true">
+    <div id="menuCard">
+      <div class="menuHeader">
+        <div class="menuTitle">Выбор лиц</div>
+        <button id="btnCloseMenu" type="button" class="iconBtn" aria-label="Закрыть">✕</button>
+      </div>
+
+      <div class="menuSection">
+        <div class="menuLabel">Твоё лицо</div>
+        <div id="playerFaces" class="faceGrid"></div>
+      </div>
+
+      <div class="menuSection">
+        <div class="menuLabel">Лицо CPU</div>
+        <div id="cpuFaces" class="faceGrid"></div>
+      </div>
+
+      <div class="menuFooter">
+        <button id="btnMenuStart" type="button">Продолжить</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
