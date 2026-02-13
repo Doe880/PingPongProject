@@ -20,6 +20,14 @@
   const countdownNumber = document.getElementById("countdownNumber");
   const countdownText = document.getElementById("countdownText");
 
+  // Victory overlay
+  const victory = document.getElementById("victory");
+  const victoryFace = document.getElementById("victoryFace");
+  const victoryTitle = document.getElementById("victoryTitle");
+  const victoryName = document.getElementById("victoryName");
+  const btnVictoryAgain = document.getElementById("btnVictoryAgain");
+  const btnVictoryClose = document.getElementById("btnVictoryClose");
+
   // ====== Лица (перечень файлов в assets/) ======
   const FACE_FILES = [
     "face_player.png",
@@ -50,7 +58,7 @@
     return (screenY / window.innerHeight) * WORLD.h;
   }
 
-  // ====== WebAudio: эффекты + "толпа" (генеративно) ======
+  // ====== WebAudio: эффекты + "толпа" + победная мелодия ======
   let audioCtx = null;
 
   let crowd = {
@@ -63,6 +71,10 @@
     started: false,
   };
 
+  // Victory tune
+  let victoryTuneTimer = null;
+  let victoryTuneStep = 0;
+
   function ensureAudio() {
     if (!audioCtx) {
       const AC = window.AudioContext || window.webkitAudioContext;
@@ -72,6 +84,32 @@
       audioCtx.resume().catch(() => {});
     }
     if (audioCtx && !crowd.started) startCrowd();
+  }
+
+  function midiToFreq(n) {
+    return 440 * Math.pow(2, (n - 69) / 12);
+  }
+
+  function playNote({ midi = 60, dur = 0.18, type = "triangle", gain = 0.05 } = {}) {
+    if (!audioCtx) return;
+
+    const t0 = audioCtx.currentTime;
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+
+    o.type = type;
+    o.frequency.setValueAtTime(midiToFreq(midi), t0);
+
+    // ADSR-ish
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.linearRampToValueAtTime(gain, t0 + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+
+    o.connect(g);
+    g.connect(audioCtx.destination);
+
+    o.start(t0);
+    o.stop(t0 + dur + 0.02);
   }
 
   function beep({ freq = 440, dur = 0.06, type = "square", gain = 0.04 } = {}) {
@@ -155,6 +193,43 @@
     crowd.gain.gain.cancelScheduledValues(t0);
     crowd.gain.gain.setValueAtTime(crowd.gain.gain.value, t0);
     crowd.gain.gain.linearRampToValueAtTime(vol, t0 + rampSec);
+  }
+
+  function startVictoryTune() {
+    if (!audioCtx) return;
+    stopVictoryTune();
+
+    // “midi-like” луп: простая победная последовательность (C major-ish)
+    // Играть будем в 140 bpm примерно
+    const seq = [
+      // аккорд/мелодия: C E G C | D F A D | E G B E | G E D C
+      { m: 72, d: 0.16, g: 0.06 }, { m: 76, d: 0.16, g: 0.05 }, { m: 79, d: 0.18, g: 0.05 },
+      { m: 74, d: 0.16, g: 0.06 }, { m: 77, d: 0.16, g: 0.05 }, { m: 81, d: 0.18, g: 0.05 },
+      { m: 76, d: 0.16, g: 0.06 }, { m: 79, d: 0.16, g: 0.05 }, { m: 83, d: 0.18, g: 0.05 },
+      { m: 79, d: 0.14, g: 0.06 }, { m: 76, d: 0.14, g: 0.05 }, { m: 74, d: 0.14, g: 0.05 }, { m: 72, d: 0.22, g: 0.06 },
+    ];
+
+    victoryTuneStep = 0;
+    victoryTuneTimer = setInterval(() => {
+      const s = seq[victoryTuneStep % seq.length];
+
+      // верхняя мелодия
+      playNote({ midi: s.m, dur: s.d, type: "triangle", gain: s.g });
+
+      // лёгкий бас на каждую вторую ноту
+      if (victoryTuneStep % 2 === 0) {
+        playNote({ midi: s.m - 24, dur: 0.20, type: "sine", gain: 0.035 });
+      }
+
+      victoryTuneStep++;
+    }, 170); // шаг
+  }
+
+  function stopVictoryTune() {
+    if (victoryTuneTimer) {
+      clearInterval(victoryTuneTimer);
+      victoryTuneTimer = null;
+    }
   }
 
   function vibe(ms) {
@@ -241,45 +316,27 @@
     });
   }
 
-  const faces = {
-    player: new Image(),
-    cpu: new Image(),
-  };
+  const faces = { player: new Image(), cpu: new Image() };
 
   // ====== Сущности ======
   const court = { padding: 40, netX: WORLD.w / 2 };
 
   const player = {
-    x: 140,
-    y: WORLD.h / 2,
-    r: 26,
-    faceR: 18,
+    x: 140, y: WORLD.h / 2, r: 26, faceR: 18,
     racket: { w: 10, h: 60, offsetX: 30 },
-    targetY: WORLD.h / 2,
-    tilt: 0,
-    lastHitAt: -999,
+    targetY: WORLD.h / 2, tilt: 0, lastHitAt: -999,
   };
 
   const cpu = {
-    x: WORLD.w - 140,
-    y: WORLD.h / 2,
-    r: 26,
-    faceR: 18,
+    x: WORLD.w - 140, y: WORLD.h / 2, r: 26, faceR: 18,
     racket: { w: 10, h: 60, offsetX: -30 },
-    speed: 260,
-    tilt: 0,
-    lastHitAt: -999,
+    speed: 260, tilt: 0, lastHitAt: -999,
   };
 
   const ball = {
-    x: WORLD.w / 2,
-    y: WORLD.h / 2,
-    r: 10,
-    vx: 360,
-    vy: 160,
-    maxV: 720,
-    superUntil: 0,
-    lastOwner: null,
+    x: WORLD.w / 2, y: WORLD.h / 2, r: 10,
+    vx: 360, vy: 160, maxV: 720,
+    superUntil: 0, lastOwner: null,
   };
 
   const state = {
@@ -288,12 +345,12 @@
     running: true,
     paused: false,
 
-    // ВАЖНО: новая логика запуска
-    needsIntro: true, // интро должно быть показано перед первым розыгрышем
-    inIntro: false,   // сейчас интро проигрывается
+    needsIntro: true,
+    inIntro: false,
+
+    victoryShown: false,
 
     lastTime: performance.now(),
-    serveDir: 1,
     message: "",
     messageUntil: 0,
   };
@@ -365,8 +422,6 @@
 
     ball.superUntil = 0;
     trail.length = 0;
-
-    state.serveDir = -servingDir;
     ball.lastOwner = null;
   }
 
@@ -379,7 +434,7 @@
     state.paused = p;
     if (p) {
       btnPause.textContent = "▶";
-      if (!state.inIntro) statusEl.textContent = "Пауза";
+      if (!state.inIntro && !state.victoryShown) statusEl.textContent = "Пауза";
       setCrowdVolume(0.04, 0.35);
     } else {
       btnPause.textContent = "⏸";
@@ -411,7 +466,7 @@
     if (superHit) {
       speed = clamp(speed * 1.35, 520, ball.maxV);
       statusEl.textContent = "СУПЕР-УДАР!";
-      setTimeout(() => { if (!state.paused && !state.inIntro) statusEl.textContent = ""; }, 650);
+      setTimeout(() => { if (!state.paused && !state.inIntro && !state.victoryShown) statusEl.textContent = ""; }, 650);
     }
 
     const vxSign = isLeft ? 1 : -1;
@@ -466,19 +521,15 @@
   }
 
   function runIntroSequence() {
-    // запускаем интро только когда пользователь уже выбрал лица (меню закрыто)
     state.inIntro = true;
     state.needsIntro = false;
 
-    // паузим физику, но рендер/эффекты идут
     setPaused(true);
     statusEl.textContent = "Интро";
 
     showIntro(true);
     countdownText.textContent = "Приготовься…";
     countdownNumber.textContent = "3";
-
-    // “толпа” чуть слышна
     setCrowdVolume(0.07, 0.5);
 
     if (introTimer) {
@@ -520,14 +571,11 @@
         introTimer = setTimeout(tick, 780);
       } else {
         introTimer = setTimeout(() => {
-          // старт розыгрыша
           state.inIntro = false;
           showIntro(false);
           setPaused(false);
-
           resetBall(Math.random() < 0.5 ? 1 : -1);
 
-          // толпа “включилась”
           setCrowdVolume(0.12, 0.9);
           setCrowdVolume(0.18, 0.15);
           setTimeout(() => setCrowdVolume(0.12, 0.65), 260);
@@ -540,12 +588,54 @@
     introTimer = setTimeout(tick, 350);
   }
 
+  // ====== Victory Overlay ======
+  function showVictoryOverlay(winnerKey) {
+    // winnerKey: "player" | "cpu"
+    state.victoryShown = true;
+    setPaused(true);
+
+    // приглушаем толпу, чтобы музыка не кашляла
+    setCrowdVolume(0.03, 0.4);
+
+    const isPlayer = winnerKey === "player";
+    victoryTitle.textContent = isPlayer ? "ТЫ — ЧЕМПИОН!" : "CPU ПОБЕДИЛ!";
+    victoryName.textContent = isPlayer ? "Champion: You" : "Champion: CPU";
+
+    // лицо победителя
+    const img = isPlayer ? faces.player : faces.cpu;
+    victoryFace.src = img.src;
+
+    victory.classList.remove("hidden");
+    victory.setAttribute("aria-hidden", "false");
+
+    // конфетти-частицы
+    for (let k = 0; k < 6; k++) {
+      spawnParticles(WORLD.w / 2, WORLD.h / 2, 18, 520, "rgba(255,211,122,0.95)");
+      spawnParticles(WORLD.w / 2, WORLD.h / 2, 16, 520, "rgba(170,190,255,0.9)");
+    }
+
+    // музыка победы
+    ensureAudio();
+    startVictoryTune();
+
+    // вибро-аплодисменты
+    vibe([25, 40, 25, 40, 25]);
+  }
+
+  function hideVictoryOverlay() {
+    state.victoryShown = false;
+    victory.classList.add("hidden");
+    victory.setAttribute("aria-hidden", "true");
+    stopVictoryTune();
+  }
+
   // ====== Матч ======
   function resetMatch() {
+    hideVictoryOverlay();
+
     state.scoreP = 0;
     state.scoreC = 0;
     state.running = true;
-    state.paused = false;
 
     state.message = "";
     state.messageUntil = 0;
@@ -562,7 +652,7 @@
     hintEl.textContent = "Свайп — движение. Быстрый свайп = супер-удар.";
     statusEl.textContent = "";
 
-    // После рестарта снова меню -> интро (как ты просил)
+    // После рестарта: меню -> интро
     state.needsIntro = true;
     showIntro(false);
     openMenu(true);
@@ -570,7 +660,6 @@
 
   // ====== Update ======
   function update(dt) {
-    // визуалки обновляем всегда
     updateTrail(dt);
     updateParticles(dt);
 
@@ -641,20 +730,10 @@
     // победа
     if (state.scoreP >= WIN_SCORE || state.scoreC >= WIN_SCORE) {
       state.running = false;
-      const winner = state.scoreP >= WIN_SCORE ? "Ты" : "Компьютер";
-      state.message = `${winner} победил!`;
-      state.messageUntil = performance.now() + 999999;
-      hintEl.textContent = "Матч окончен. Нажми ↻ для рестарта.";
-      statusEl.textContent = "";
-      vibe([25, 40, 25]);
 
-      if (audioCtx) {
-        beep({ freq: 880, dur: 0.18, type: "sine", gain: 0.05 });
-        beep({ freq: 660, dur: 0.14, type: "triangle", gain: 0.04 });
-      }
-
-      setCrowdVolume(0.18, 0.25);
-      setTimeout(() => setCrowdVolume(0.10, 1.0), 900);
+      // показываем победителя
+      const winnerKey = state.scoreP >= WIN_SCORE ? "player" : "cpu";
+      showVictoryOverlay(winnerKey);
     }
 
     if (performance.now() > state.messageUntil && state.message) state.message = "";
@@ -788,16 +867,6 @@
     drawBall();
     drawMessage();
 
-    if (state.paused && !state.inIntro && menu.classList.contains("hidden")) {
-      ctx.fillStyle = "rgba(0,0,0,0.30)";
-      ctx.fillRect(0, 0, WORLD.w, WORLD.h);
-      ctx.fillStyle = "#fff";
-      ctx.font = "900 24px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText("Пауза", WORLD.w / 2, WORLD.h / 2);
-    }
-
     ctx.restore();
   }
 
@@ -859,13 +928,11 @@
   }
 
   function openMenu(initial = false) {
-    // меню должно появляться ДО интро
     showIntro(false);
     state.inIntro = false;
 
     menu.classList.remove("hidden");
 
-    // На первом открытии меню — можно поставить состояние “не стартуем игру”
     if (initial) {
       setPaused(true);
       statusEl.textContent = "Выбор лиц";
@@ -885,43 +952,49 @@
 
   btnPause.addEventListener("click", () => {
     ensureAudio();
-    if (state.inIntro) return; // во время интро не даём паузить
-    if (!menu.classList.contains("hidden")) return; // когда меню открыто — пауза не нужна
+    if (state.inIntro) return;
+    if (!menu.classList.contains("hidden")) return;
+    if (state.victoryShown) return;
     setPaused(!state.paused);
   });
 
   btnMenu.addEventListener("click", () => {
     ensureAudio();
+    if (state.victoryShown) return;
     openMenu(false);
   });
 
   btnCloseMenu.addEventListener("click", () => closeMenu());
 
-  // Кнопка "Продолжить" в меню:
-  // 1) закрываем меню
-  // 2) запускаем интро
   btnMenuStart.addEventListener("click", () => {
     ensureAudio();
     closeMenu();
     statusEl.textContent = "";
 
-    if (state.needsIntro) {
-      runIntroSequence();
-    } else {
-      setPaused(false);
-    }
+    if (state.needsIntro) runIntroSequence();
+    else setPaused(false);
   });
+
+  // Victory buttons
+  btnVictoryAgain.addEventListener("click", () => {
+    ensureAudio();
+    resetMatch();
+  });
+  btnVictoryClose.addEventListener("click", () => {
+    ensureAudio();
+    hideVictoryOverlay();
+    // остаёмся на финальном экране матча (как было), но без оверлея
+    statusEl.textContent = "Матч окончен";
+  });
+
+  // Тап по победному экрану тоже включает звук
+  victory.addEventListener("pointerdown", () => ensureAudio());
 
   // Автопауза при скрытии вкладки
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
       setPaused(true);
-      if (state.inIntro) statusEl.textContent = "Интро";
-      else if (!menu.classList.contains("hidden")) statusEl.textContent = "Выбор лиц";
-      else statusEl.textContent = "Пауза (вкладка скрыта)";
       setCrowdVolume(0.03, 0.3);
-    } else {
-      if (state.paused && !state.inIntro && menu.classList.contains("hidden")) statusEl.textContent = "Пауза";
     }
   });
 
@@ -953,7 +1026,7 @@
     hintEl.textContent = "Свайп — движение. Быстрый свайп = супер-удар.";
     statusEl.textContent = "Выбор лиц";
 
-    // Ключевое: СНАЧАЛА меню, интро прячем
+    // Сначала меню
     state.needsIntro = true;
     showIntro(false);
     openMenu(true);

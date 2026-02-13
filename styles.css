@@ -9,7 +9,6 @@ html, body {
   overflow: hidden;
 }
 
-/* Канвас всегда на весь экран */
 #game {
   display: block;
   width: 100vw;
@@ -25,7 +24,7 @@ html, body {
   top: 0;
   z-index: 25;
   padding-top: env(safe-area-inset-top);
-  pointer-events: none; /* чтобы не мешать свайпу */
+  pointer-events: none;
 }
 
 /* ====== Бренд ====== */
@@ -48,7 +47,6 @@ html, body {
   animation: titleAppear 650ms ease-out both;
 }
 
-/* Жёстко ограничиваем размер картинки, чтобы не раздувало экран */
 #brandLogo {
   width: clamp(44px, 14vw, 72px);
   max-width: 72px;
@@ -119,9 +117,8 @@ html, body {
 }
 #buttons button:active { transform: translateY(1px); }
 
-/* ====== На маленьких экранах убираем длинный текст, чтобы не было наложений ====== */
 @media (max-width: 420px) {
-  #hint { display: none; }                 /* главная причина “каши” */
+  #hint { display: none; }
   #ui { padding-top: 6px; gap: 8px; }
   #buttons button { width: 38px; height: 38px; }
   #score { font-size: 15px; }
@@ -315,6 +312,239 @@ html, body {
 #countdownText { font-size: 12px; opacity: 0.9; font-weight: 800; }
 .introTapHint { margin-top: 10px; font-size: 12px; opacity: 0.85; }
 
+/* ====== VICTORY OVERLAY ====== */
+#victory {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  z-index: 80;
+  background: radial-gradient(circle at 50% 20%, rgba(255, 211, 122, 0.18), rgba(0,0,0,0.78));
+  pointer-events: auto;
+}
+#victory.hidden { display: none; }
+
+.victoryCard {
+  width: min(520px, 100%);
+  border-radius: 22px;
+  padding: 16px 14px 14px;
+  background: rgba(10, 14, 30, 0.80);
+  border: 1px solid rgba(255,255,255,0.14);
+  box-shadow: 0 26px 80px rgba(0,0,0,0.70);
+  text-align: center;
+  animation: introPop 650ms ease-out both;
+}
+
+.victoryTitle {
+  font-weight: 950;
+  font-size: 18px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  background: linear-gradient(90deg,#fff,#ffd37a);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 2px 14px rgba(255,211,122,0.28));
+  margin-bottom: 10px;
+}
+
+.victoryFaceWrap {
+  position: relative;
+  width: 138px;
+  height: 138px;
+  margin: 0 auto 10px;
+}
+
+.victoryFace {
+  width: 138px;
+  height: 138px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid rgba(255,255,255,0.20);
+  transform: scale(1.06);
+  box-shadow: 0 18px 60px rgba(0,0,0,0.5);
+  animation: winnerZoom 1.1s ease-out both;
+}
+
+.victoryGlow {
+  position: absolute;
+  inset: -14px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,211,122,0.35), rgba(255,211,122,0.0) 65%);
+  filter: blur(2px);
+  animation: glowPulse 1.8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.victoryName {
+  font-weight: 900;
+  font-size: 14px;
+  opacity: 0.92;
+  margin-bottom: 10px;
+}
+
+.dancer {
+  position: relative;
+  width: 220px;
+  height: 180px;
+  margin: 0 auto;
+  transform-origin: 50% 80%;
+  animation: dance 0.62s ease-in-out infinite;
+}
+
+.dancerBody {
+  position: absolute;
+  left: 50%;
+  top: 38px;
+  transform: translateX(-50%);
+  width: 62px;
+  height: 78px;
+  border-radius: 16px;
+  background: rgba(201, 214, 255, 0.90);
+  box-shadow: inset 0 -10px 0 rgba(0,0,0,0.08);
+}
+
+.dancerArm {
+  position: absolute;
+  top: 64px;
+  width: 64px;
+  height: 12px;
+  border-radius: 10px;
+  background: rgba(201, 214, 255, 0.90);
+  transform-origin: 10% 50%;
+}
+
+.dancerArm.left {
+  left: 36px;
+  transform: rotate(-18deg);
+  animation: armLeft 0.62s ease-in-out infinite;
+}
+
+.dancerArm.right {
+  right: 36px;
+  transform-origin: 90% 50%;
+  transform: rotate(18deg);
+  animation: armRight 0.62s ease-in-out infinite;
+}
+
+.dancerLeg {
+  position: absolute;
+  bottom: 16px;
+  width: 14px;
+  height: 62px;
+  border-radius: 10px;
+  background: rgba(201, 214, 255, 0.90);
+  transform-origin: 50% 10%;
+}
+
+.dancerLeg.left {
+  left: 92px;
+  transform: rotate(10deg);
+  animation: legLeft 0.62s ease-in-out infinite;
+}
+
+.dancerLeg.right {
+  right: 92px;
+  transform: rotate(-10deg);
+  animation: legRight 0.62s ease-in-out infinite;
+}
+
+/* сигара */
+.cigar {
+  position: absolute;
+  left: 44px;
+  top: -10px;
+  width: 30px;
+  height: 8px;
+  border-radius: 6px;
+  background: #8b5a2b;
+  box-shadow: inset -6px 0 0 rgba(255,255,255,0.25);
+}
+.cigar::after {
+  content: "";
+  position: absolute;
+  right: -6px;
+  top: 2px;
+  width: 6px;
+  height: 4px;
+  border-radius: 3px;
+  background: #ff6a3d;
+  box-shadow: 0 0 10px rgba(255,106,61,0.55);
+}
+
+.cigarSmoke {
+  position: absolute;
+  left: -8px;
+  top: -10px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.45);
+  filter: blur(0.4px);
+  animation: smoke 1.2s ease-in-out infinite;
+}
+.cigarSmoke.s2 { left: -14px; top: -18px; opacity: 0.35; animation-delay: 0.2s; }
+.cigarSmoke.s3 { left: -6px; top: -22px; opacity: 0.28; animation-delay: 0.4s; }
+
+/* кружка пива */
+.beer {
+  position: absolute;
+  right: 44px;
+  top: -18px;
+  width: 22px;
+  height: 26px;
+  border-radius: 6px;
+  background: rgba(255, 211, 122, 0.95);
+  box-shadow: inset 0 -10px 0 rgba(0,0,0,0.08);
+}
+.beerFoam {
+  position: absolute;
+  left: 0;
+  top: -6px;
+  width: 22px;
+  height: 10px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.95);
+}
+.beerHandle {
+  position: absolute;
+  right: -8px;
+  top: 6px;
+  width: 10px;
+  height: 14px;
+  border: 3px solid rgba(255,255,255,0.75);
+  border-left: 0;
+  border-radius: 0 10px 10px 0;
+  opacity: 0.9;
+}
+
+.victoryButtons {
+  margin-top: 12px;
+  display: flex;
+  gap: 10px;
+}
+.victoryButtons button {
+  flex: 1;
+  border: 0;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(42, 60, 255, 0.95);
+  color: white;
+  font-weight: 900;
+  font-size: 14px;
+}
+.victoryButtons button:active { transform: translateY(1px); }
+.victoryButtons button.ghost {
+  background: rgba(255,255,255,0.10);
+  border: 1px solid rgba(255,255,255,0.14);
+}
+
+.victoryHint {
+  margin-top: 10px;
+  font-size: 12px;
+  opacity: 0.85;
+}
+
 /* ====== Анимации ====== */
 @keyframes logoGlow {
   0%, 100% {
@@ -330,23 +560,52 @@ html, body {
     transform: translateY(-1px) scale(1.02);
   }
 }
-
 @keyframes logoAppear {
   from { opacity: 0; transform: translateY(-10px) scale(0.96); }
   to   { opacity: 0.95; transform: translateY(0) scale(1); }
 }
-
 @keyframes titleAppear {
   from { opacity: 0; transform: translateY(-10px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-
 @keyframes introPop {
   from { transform: translateY(14px) scale(0.98); opacity: 0; }
   to   { transform: translateY(0) scale(1); opacity: 1; }
 }
-
 @keyframes pulseNum {
   0%,100% { transform: scale(1); opacity: 0.95; }
   50%     { transform: scale(1.06); opacity: 1; }
+}
+@keyframes winnerZoom {
+  from { transform: scale(0.92); opacity: 0.0; }
+  to   { transform: scale(1.06); opacity: 1.0; }
+}
+@keyframes glowPulse {
+  0%,100% { transform: scale(1); opacity: 0.9; }
+  50%     { transform: scale(1.08); opacity: 1; }
+}
+@keyframes dance {
+  0%,100% { transform: translateY(0) rotate(-2deg); }
+  50%     { transform: translateY(-2px) rotate(2deg); }
+}
+@keyframes armLeft {
+  0%,100% { transform: rotate(-16deg) translateY(0); }
+  50%     { transform: rotate(-28deg) translateY(-2px); }
+}
+@keyframes armRight {
+  0%,100% { transform: rotate(16deg) translateY(0); }
+  50%     { transform: rotate(28deg) translateY(-2px); }
+}
+@keyframes legLeft {
+  0%,100% { transform: rotate(10deg); }
+  50%     { transform: rotate(-8deg); }
+}
+@keyframes legRight {
+  0%,100% { transform: rotate(-10deg); }
+  50%     { transform: rotate(8deg); }
+}
+@keyframes smoke {
+  0%   { transform: translate(0,0) scale(0.7); opacity: 0.0; }
+  20%  { opacity: 0.45; }
+  100% { transform: translate(-10px,-22px) scale(1.4); opacity: 0.0; }
 }
